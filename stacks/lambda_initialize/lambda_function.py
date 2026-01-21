@@ -41,11 +41,11 @@ def handler(event, _):
 
         logger.info("Query generada: %s", query_string)
 
-        path_athena_result = f"s3://{S3_BUCKET_NAME}/athena-results/{timestamp}/"
+        # Buena practica: juntar las carpetas de input y output con el timestamp
+        path_athena_result = f"s3://{S3_BUCKET_NAME}/pipeline-executions/{timestamp}/athena-results/"
+        s3_output_uri = f"s3://{S3_BUCKET_NAME}/pipeline-executions/{timestamp}/sagemaker/output/"
 
         path_sagemaker_code = f"s3://{S3_BUCKET_NAME}/sagemaker/input/sagemaker.py"
-        s3_output_uri = f"s3://{S3_BUCKET_NAME}/sagemaker/output/{timestamp}/"
-
 
         sagemaker = processing_job.make_request(
             code_uri=path_sagemaker_code,

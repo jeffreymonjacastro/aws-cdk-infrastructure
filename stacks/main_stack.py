@@ -12,7 +12,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-EMAIL = os.getenv("NOTIFICATION_EMAIL")
+EMAIL = os.getenv("NOTIFICATION_EMAIL", "john.doe@example.com")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "")
 SAGEMAKER_IMAGE_URI = os.getenv("SAGEMAKER_IMAGE_URI", "")
 SAGEMAKER_ROLE_ARN = os.getenv("SAGEMAKER_ROLE_ARN", "")
@@ -37,11 +37,10 @@ class MainStack(Stack):
         topic = aws_sns.Topic(self, "PipelineNotificationTopic",
             display_name="IBK MLOps Notifications"
         )
-        
-        if EMAIL:
-            topic.add_subscription(
-                sub.EmailSubscription(EMAIL) # type: ignore[arg-type]
-            )
+
+        topic.add_subscription(
+            sub.EmailSubscription(EMAIL) # type: ignore[arg-type]
+        )
 
         # ==========================================
         # 2. CÓMPUTO (LAMBDA)
