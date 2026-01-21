@@ -1,0 +1,97 @@
+{
+  "Comment": "Pipeline MLOps Interbank",
+  "StartAt": "Initialize",
+  "States": {
+    "Initialize": {
+      "Next": "Workflow",
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "FunctionName": "${lambda_initialize_arn}",
+        "Payload.$": "$$"
+      }
+    },
+    "Workflow": {
+      "Type": "Parallel",
+      "Next": "NotifySuccess",
+      "Branches": [
+        {
+          "StartAt": "DataSelection",
+          "States": {
+            "DataSelection": {
+              "Next": "MainJob",
+              "Type": "Task",
+              "Resource": "arn:aws:states:::athena:startQueryExecution.sync",
+              "InputPath": "$.DataSelection",
+              "ResultPath": "$.DataSelection.Output",
+              "Parameters": {
+                "QueryString.$": "$.QueryString",
+                "ResultConfiguration.$": "$.ResultConfiguration"
+              }
+            },
+            "MainJob": {
+              "Next": "Thing",
+              "Type": "Task",
+              "Resource": "arn:aws:states:::sagemaker:createProcessingJob.sync",
+              "InputPath": "$.MainJob",
+              "ResultPath": "$.MainJob.Output",
+              "Parameters": {
+                "AppSpecification.$": "$.AppSpecification",
+                "ProcessingInputs.$": "$.ProcessingInputs",
+                "ProcessingJobName.$": "$.ProcessingJobName",
+                "ProcessingOutputConfig.$": "$.ProcessingOutputConfig",
+                "ProcessingResources.$": "$.ProcessingResources",
+                "RoleArn.$": "$.RoleArn"
+              }
+            },
+            "Thing": {
+              "End": true,
+              "Type": "Pass"
+            }
+          }
+        }
+      ],
+      "Catch": [
+        {
+          "Next": "NotifyFail",
+          "ResultPath": "$.ErrorDetails",
+          "ErrorEquals": [
+            "States.ALL"
+          ]
+        }
+      ]
+    },
+    "NotifySuccess": {
+      "Next": "Succeed",
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${sns_topic_arn}",
+        "Message": {
+          "Status": "SUCCESS",
+          "Detail": "El pipeline finalizó correctamente.",
+          "QueryExecutionID.$": "$[0].DataSelection.Output.QueryExecution.QueryExecutionId"
+        }
+      }
+    },
+    "Succeed": {
+      "Type": "Succeed"
+    },
+    "NotifyFail": {
+      "Next": "Fail",
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${sns_topic_arn}",
+        "Message": {
+          "Status": "FAILURE",
+          "Detail": "Hubo un error en el flujo"
+        }
+      }
+    },
+    "Fail": {
+      "Type": "Fail"
+    }
+  }
+}
