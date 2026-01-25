@@ -1,0 +1,4 @@
+mcp
+fastapi
+uvicorn
+# No incluimos pandas/awswrangler aqui porque vendran en la Layer de AWS
